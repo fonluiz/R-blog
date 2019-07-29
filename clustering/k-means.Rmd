@@ -44,8 +44,7 @@ data(all.mammals.milk.1956)
 head(all.mammals.milk.1956)
 ```
 
-
-Os gráficos abaixo mostram as distribuições de cada variável. Cada ponto representa uma unidade acadêmica (46 unidades acadêmicas no total).
+The charts below show us the distribution for each variable. Each point represents a mammal specie (25 in total).
 
 ```{r, fig.height=11}
 library(tidyverse)
@@ -54,47 +53,52 @@ library(gridExtra)
 plot1 <- all.mammals.milk.1956 %>% 
     ggplot(aes(x = "all mammals", y = water)) + 
     geom_jitter(width = .025, height = 0, size = 2, alpha = .5, color = "blue") +
-  labs(x = "", y="funcinários não professores")
+  labs(x = "", y="percentage of water")
 
 plot2 <-  all.mammals.milk.1956 %>%
   ggplot(aes(x = "all mammals", y = protein)) + 
     geom_jitter(width = .02, height = 0, size = 2, alpha = .6,  color = "orange") +
-  labs(x = "", y="professores 20 h semanais")
+  labs(x = "", y="percentage of protein")
 
 plot3 <-  all.mammals.milk.1956 %>%
   ggplot(aes(x = "all mammals", y = fat)) + 
     geom_jitter(width = .02, height = 0, size = 2, alpha = .6,  color = "green") +
-  labs(x = "", y="professores 40 h semanais")
+  labs(x = "", y="percentage of fat")
 
 plot4 <-  all.mammals.milk.1956 %>%
   ggplot(aes(x = "all mammals", y = lactose)) + 
     geom_jitter(width = .02, height = 0, size = 2, alpha = .6,  color = "red") +
-  labs(x = "", y="mediana do tempo no cargo")
+  labs(x = "", y="percentage of lactose")
 
 plot5 <-  all.mammals.milk.1956 %>%
   ggplot(aes(x = "all mammals", y = ash)) + 
     geom_jitter(width = .02, height = 0, size = 2, alpha = .6,  color = "violet") +
-  labs(x = "", y="mediana do tempo no cargo")
+  labs(x = "", y="percentage of ash")
 
 grid.arrange(plot1, plot2, plot3, plot4, plot5)
 ```
 
-Cada variável tem um comportamento diferente e poderíamos enxergar grupos de unidades acadêmicas de acordo com cada variável individualmente, mas este não é o nosso propósito.
+Each variable has a different behavior and we could identify groups of mammals on each one individually, but that's not the purpose here.
 
-Todas as variáveis serão utilizadas no agrupamento numa escala linear. A escala logarítmica não é tão útil nesse caso porque a faixa de valores das variáveis não é muito grande.
+All the variables will be used in the clustering on a linear scale. Sometimes, when the values (for each feature) are in a big range, for example from 0 up to 1 million, it's interesting to use a logarithmic scale because on a log scale we would highlight bigger differences between the values and smaller differences would be considered less important. Since the values in our dataset vary between 0 and 100, we are going to use a linear scale, which considers differences between values equally important .
 
-## Agrupamento
+## Clustering
 
-Como dito anteriormente, o algoritmo de agrupamento que será utilizado é o K-means. Os paramêtros de entrada do algorítmo são os dados do agrupamento e um valor k, que é o número de grupos em que se pretende agrupar os dados. 
+The clustering algorithm that we are going to use is the K-means algorithm, which we can find in the package **cluster**. The K-means algorithm accepts two parameters as input:
 
-Conceitualmente, o algorítmo funciona da seguinte forma:
+* The data;
+* A **K** value, which is the number of groups that we want to create. 
 
-<ol>
-<li> Seleciona K centroides randomicamente; </li>
-<li> Relaciona cada ponto dos dados com o centroide mais próximo em um espaço n-dimensional onde n é o número de variáveis do agrupamento. Depois disso cada ponto pertencerá a um grupo;</li>
-<li> Recalcula o centroide como sendo o ponto médio de todos os outros pontos do grupo;</li>
-<li> Continua executando os passos dois e três até que nenhum ponto tenha sido realocado para outro centroide ou até atingir o número máximo de iterações (o R usa 10 como default).</li>
-</ol>
+Conceptually, the K-means algorithm behaves as follows:
+
+1. It chooses K centroids randomly;
+2. Matches each point in the data (in our case, each mammal) with the closest centroid in a n-dimentional space where n is the number of features used in the clustering (in our example, 5 features - water, protein, fat, lactose, ash). After this step, each point belongs in a group.
+3. Now, it recalculates the centroids as being the mean point (vector) of all other points in the group.
+4. It keeps repeating the steps 2 and 3 until either when the groups are stabilized, that is, when no points are realocated to another centroid or when it reaches the maximum number of iterations (the cluster library uses 10 as default) [checar essa informação].
+
+[Inserir animação do kmeans]
+
+The bigger is the **K** you choose, the lower will be the variance of the groups in the clustering. If K is equal to the number of observations, then each point will be a group and the variance will be 0. It's interesting to find a balance between the number of groups and their variance. A variance of a group means how different the members of the group are. The bigger is the variance, the bigger is the dissimilarity in a group.
 
 Quanto mais grupos (maior o valor de k) você escolher, menor será a variância dos grupos no seu agrupamento. No limite, cada observação será um grupo e a variância será 0. É interessante encontrar um equilíbrio entre o número de grupos e a variância destes.
 
