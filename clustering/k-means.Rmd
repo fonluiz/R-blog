@@ -100,42 +100,52 @@ Conceptually, the K-means algorithm behaves as follows:
 
 The bigger is the **K** you choose, the lower will be the variance of the groups in the clustering. If K is equal to the number of observations, then each point will be a group and the variance will be 0. It's interesting to find a balance between the number of groups and their variance. A variance of a group means how different the members of the group are. The bigger is the variance, the bigger is the dissimilarity in a group.
 
-Quanto mais grupos (maior o valor de k) você escolher, menor será a variância dos grupos no seu agrupamento. No limite, cada observação será um grupo e a variância será 0. É interessante encontrar um equilíbrio entre o número de grupos e a variância destes.
+How do we choose the best value of **K** in order to find that balance?
 
-Como vamos saber qual valor de k escolher para econtrar esse equilíbrio?
-
-Para responder essa questão vamos executar o K-means para um k arbitrário, 3, por exemplo.
+To answer that question, we are going to run K-means for an arbitrary **K**. Let's pick 3.
 
 ```{r}
+# As the initial centroids are defined randomly, we define a seed for purposes of reprodutability
 # Como os centroides iniciais são definidos randomicamente, 
 # nós definimos uma semente para fins de reprodutabilidade.
 set.seed(123)
 
+# Let's remove the column with the mammals' names, so it won't be used in the clustering
 # Retira a coluna com o nome das UAs
-input <- dados.agrupamento[,2:5]
+input <- all.mammals.milk.1956[,2:6]
 
-# nstart indica que queremos que o algoritmo seja executado 20 vezes. A função irá selecionar
-# a execução com menor variância no agrupamento
+# The nstart parameter indicates that we want the algorithm to be executed 20 times. This number is not the number of iterations, it is like calling the function 20 times and then the execution with lower variance within the groups will be selected as the final result.
 kmeans(input, centers = 3, nstart = 20)
 ```
 
-A função do R nos mostra os resultados do agrupamento. Podemos ver os centroides do agrupamento (cluster means), o grupo a qual cada observação foi atribuída (clustering vector) e a uma porcentagem que representa a eficiência do agrupamento (54.1%). 
+The **kmeans** function outputs the results of the clustering. We can see the centroids vectors (cluster means), the group in which each observation was allocated (clustering vector) and a percentage that represents how similar are the members of the group (89.9%). If all the observations within a group were in the same exact point in the n-dimensional space, then we would achieve 100%.
 
-Iremos utilizar essa porcentagem para encontrar um número de grupos que tenha uma variância satisfatória.
+Since we know that, we will use that percentage to help us decide our **K** value, that is, a number of groups that will have a satisfactory variance.
 
-A função abaixo produz um gráfico da soma total dos quadrados (das distâncias entre pontos) internos de cada grupo pelo o número de grupos.
+The function below plots a chart showing the "within sum of squares" (withinss) by the number of groups (**K** value) chosen for several executions of the algorithm. The within sum of squares is a metric that shows how dissimilar are the members of a group., the greater is the sum, the greater is the dissimilarity within a group.
+
 
 ```{r}
+#' Plots a chart showing the sum of squares within a group for each execution of the kmeans algorithm. 
+#' In each execution the number of the initial groups increases by one up to the maximum number of centers passed as argument.
+#'
+#' @param data The dataframe to perform the kmeans 
+#' @param nc The maximum number of initial centers
+#'
 wssplot <- function(data, nc=15, seed=123){
                wss <- (nrow(data)-1)*sum(apply(data,2,var))
                for (i in 2:nc){
                     set.seed(seed)
                     wss[i] <- sum(kmeans(data, centers=i)$withinss)}
-                plot(1:nc, wss, type="b", xlab="Número de grupos",
-                     ylab="Soma dos quadrados dos grupos")}
+                plot(1:nc, wss, type="b", xlab="Number of groups",
+                     ylab="Sum of squares within a group")}
 
 wssplot(input, nc = 20)
 ```
+
+By Analysing the chart from right to left, we can see that when it reduces from 4 to 3 the number of groups (**K**) there is a bigger increase in the sum of squares than any other increase before. That means that when it passes from 4 to 3 groups there is a reduction in the clustering efficience (by efficience, I mean the similarity within a group). Our goal, however, is not to achieve an efficence of 100% - for that, we would just take each observation as a group. The main purpose is to find a fair number of groups that could explain satisfactorily a considerable part of the data.
+
+So, let's choose K = 4 and run the K-means again.
 
 Analisando o gráfico da direita para a esquerda, vemos que de seis grupos para cinco grupos há um aumento maior na soma dos quadrados do que qualquer outro aumento anterior. Isso significa que quando passamos de seis grupos para cinco grupos há uma diminuição na eficiência do agrupamento. Nosso objetivo não é chegar a 100% de eficiência - para isso bastaria tomar cada observação como um grupo. O objetivo é encontrar um número satisfatório de grupos que explique uma quantidade satisfatória dos dados. 
 
@@ -143,7 +153,7 @@ Vamos, então, escoher k = 6 e executar o K-means novamente.
 
 ```{r}
 set.seed(123)
-agrupamento <- kmeans(input, centers = 6, nstart = 20)
+agrupamento <- kmeans(input, centers = 4, nstart = 20)
 agrupamento
 ```
 
@@ -152,8 +162,10 @@ Com três grupos tínhamos 51,4% de dados bem agrupados. Com seis grupos, esse �
 O gráfico de silhueta abaixo nos dá indícios de que o nosso agrupamento com seis grupos é um bom agrupamento, pois não há nenhum valor de silhueta negativo e a maioria deles está acima de 0,5.
 
 ```{r}
+library(cluster)
+
 sil <- silhouette(agrupamento$cluster, dist(input))
-fviz_silhouette(sil)
+viz_silhouette(sil)
 ```
 
 O gráfico abaixo mostra o resultado final do nosso agrupamento. Você pode isolar um grupo para ver suas características.
