@@ -157,12 +157,15 @@ agrupamento <- kmeans(input, centers = 4, nstart = 20)
 agrupamento
 ```
 
-Com três grupos tínhamos 51,4% de dados bem agrupados. Com seis grupos, esse índice aumentou para 85,1%, que é um valor que nos satisfaz.
+Using 3 groups (K = 3) we had 89.9% of well-grouped data. Using 4 groups (K = 4) that value raised to 95.1%, which is a good value for us.
 
 O gráfico de silhueta abaixo nos dá indícios de que o nosso agrupamento com seis grupos é um bom agrupamento, pois não há nenhum valor de silhueta negativo e a maioria deles está acima de 0,5.
 
+
+## Clustering Validation
 ```{r}
 library(cluster)
+library(factoextra)
 
 sil <- silhouette(agrupamento$cluster, dist(input))
 viz_silhouette(sil)
