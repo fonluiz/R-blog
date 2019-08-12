@@ -13,16 +13,6 @@ output:
 knitr::opts_chunk$set(echo = TRUE, message = F, warning = F, set.seed(123))
 ```
 
-```{r}
-# Bibliotecas utilizadas
-library(tidyverse)
-library(gridExtra)
-library(factoextra)
-library(cluster)
-library(GGally)
-library(plotly)
-```
-
 The purpose of clustering analysis is to identify patterns in your data and create groups according to those patterns. Therefore, if two points have similar characteristics, that means they have the same pattern and consequently they belong to the same group. By doing clustering analysis we should be able to check what features usually appear together and see what characterizes a group. 
 
 In this analysis we are going to perform a clustering analysis with multiple variables using the algorithm K-means. The intention is to find groups of mammals based on the composition of the species' milk.
@@ -98,7 +88,7 @@ Conceptually, the K-means algorithm behaves as follows:
 
 [Inserir animação do kmeans]
 
-The bigger is the **K** you choose, the lower will be the variance of the groups in the clustering. If K is equal to the number of observations, then each point will be a group and the variance will be 0. It's interesting to find a balance between the number of groups and their variance. A variance of a group means how different the members of the group are. The bigger is the variance, the bigger is the dissimilarity in a group.
+The bigger is the **K** you choose, the lower will be the variance within the groups in the clustering. If K is equal to the number of observations, then each point will be a group and the variance will be 0. It's interesting to find a balance between the number of groups and their variance. A variance of a group means how different the members of the group are. The bigger is the variance, the bigger is the dissimilarity in a group.
 
 How do we choose the best value of **K** in order to find that balance?
 
@@ -118,9 +108,9 @@ input <- all.mammals.milk.1956[,2:6]
 kmeans(input, centers = 3, nstart = 20)
 ```
 
-The **kmeans** function outputs the results of the clustering. We can see the centroids vectors (cluster means), the group in which each observation was allocated (clustering vector) and a percentage that represents how similar are the members of the group (89.9%). If all the observations within a group were in the same exact point in the n-dimensional space, then we would achieve 100%.
+The **kmeans()** function outputs the results of the clustering. We can see the centroids vectors (cluster means), the group in which each observation was allocated (clustering vector) and a percentage (89.9%) that represents the **compactness** of the clustering, that is, how similar are the members within the same group. If all the observations within a group were in the same exact point in the n-dimensional space, then we would achieve 100%.
 
-Since we know that, we will use that percentage to help us decide our **K** value, that is, a number of groups that will have a satisfactory variance.
+Since we know that, we will use that percentage to help us decide our **K** value, that is, a number of groups that will have  satisfactory variance and compactness.
 
 The function below plots a chart showing the "within sum of squares" (withinss) by the number of groups (**K** value) chosen for several executions of the algorithm. The within sum of squares is a metric that shows how dissimilar are the members of a group., the greater is the sum, the greater is the dissimilarity within a group.
 
@@ -143,7 +133,7 @@ wssplot <- function(data, nc=15, seed=123){
 wssplot(input, nc = 20)
 ```
 
-By Analysing the chart from right to left, we can see that when it reduces from 4 to 3 the number of groups (**K**) there is a bigger increase in the sum of squares than any other increase before. That means that when it passes from 4 to 3 groups there is a reduction in the clustering efficience (by efficience, I mean the similarity within a group). Our goal, however, is not to achieve an efficence of 100% - for that, we would just take each observation as a group. The main purpose is to find a fair number of groups that could explain satisfactorily a considerable part of the data.
+By Analysing the chart from right to left, we can see that when it reduces from 4 to 3 the number of groups (**K**) there is a bigger increase in the sum of squares than any other increase before. That means that when it passes from 4 to 3 groups there is a reduction in the clustering compactness (by compactness, I mean the similarity within a group). Our goal, however, is not to achieve a compactness of 100% - for that, we would just take each observation as a group. The main purpose is to find a fair number of groups that could explain satisfactorily a considerable part of the data.
 
 So, let's choose K = 4 and run the K-means again.
 
@@ -153,47 +143,51 @@ Vamos, então, escoher k = 6 e executar o K-means novamente.
 
 ```{r}
 set.seed(123)
-agrupamento <- kmeans(input, centers = 4, nstart = 20)
-agrupamento
+clustering <- kmeans(input, centers = 4, nstart = 20)
+clustering
 ```
 
 Using 3 groups (K = 3) we had 89.9% of well-grouped data. Using 4 groups (K = 4) that value raised to 95.1%, which is a good value for us.
 
-O gráfico de silhueta abaixo nos dá indícios de que o nosso agrupamento com seis grupos é um bom agrupamento, pois não há nenhum valor de silhueta negativo e a maioria deles está acima de 0,5.
-
-
 ## Clustering Validation
+
+We may use the silhouette coefficient to evaluate the goodness of our clustering.
+
+The silhouette coefficient is calculated as follows:
+1. For each observation **i**, calculates the average dissimilarity between **i** and all the other points within the same cluster which **i** belongs. Let's call this average dissimilarity **"Di"**.
+2. Now we do the same dissimilarity calculation between **i** and all the other clusters and get the lowest value among them. That is, we find the dissimilarity between **i** and the cluster that is closest to **i** right after its own cluster. Let's call that value **"Ci"**
+3. The silhouette (**Si**) width is the difference between Ci and Di (Ci - Di) divided by the greatest of those two values (max(Di, Ci)). **Si = (Ci - Di) / max(Di, Ci)**
+
+So The interpretation of the silhouette width is the following:
+* Si > 0 means that the observation is well clustered. The closest it is to 1, the best it is clustered.
+* Si < 0 means that the observation was placed in the wrong cluster.
+* Si = 0 means that the observation is between two clusters.
+
+The silhouette plot below give us evidence that our clustering using four groups is good because there's no negative silhouette width  and most of the values are bigger than 0.5.
+
 ```{r}
 library(cluster)
 library(factoextra)
 
-sil <- silhouette(agrupamento$cluster, dist(input))
-viz_silhouette(sil)
+sil <- silhouette(clustering$cluster, dist(input))
+fviz_silhouette(sil)
 ```
 
+The following plot shows the final result of our clustering. 
 O gráfico abaixo mostra o resultado final do nosso agrupamento. Você pode isolar um grupo para ver suas características.
 
 ```{r}
-dados.agrupamento$grupo <- as.factor(agrupamento$cluster)
+library(GGally)
+library(plotly)
 
-p <- ggparcoord(data = dados.agrupamento, columns = c(2:5), groupColumn = "grupo", scale = "std") + labs(x = "Variável", y = "valor (em unidade de desvios-padrões)", title = "Resultado do agrupamento")
+all.mammals.milk.1956$cluster <- as.factor(clustering$cluster)
+
+p <- ggparcoord(data = all.mammals.milk.1956, columns = c(2:6), groupColumn = "cluster", scale = "std") + labs(x = "milk constituent", y = "value (in standard-deviation units)", title = "Clustering")
 ggplotly(p)
 ```
 
-Vamos identificar os padrões de cada grupo e dar nome a esses grupos.
+The purpose of clustering analysis is to identify patterns in the data. As we can see in the plot above, observations within the same group tend to have similar characteristics. 
 
-<ul>
-<li> <b>Os normais:</b> o grupo 1 parece ser o grupo com mais valores em torno do valor médio para todas as 4 variáveis. Também é o grupo com mais integrantes. A UASC está nesse grupo</li>
-<li> <b>Os não-acadêmicos:</b> o grupo 2 é o das UAs que possuem mais funcionários que não são professores, possuem um número de professores 20h um pouco abaixo da média e as outras duas variáveias são acima da média. </li>
-<li> <b>Os veteranos:</b> a principal característica do grupo 3 é que ele engloba a grande maioria das UAs com funcionários a mais tempo no cargo. Este grupo possui um número de professores abaixo da média e um número de funcionários não professores que varia em torno da média.</li>
+Let's take the green group as instance to evaluate. The two mammal species that belongs to that group, namely seal and dolphin, they have the lowest percentage of water (44.9% and 46.4%); they both have around 10% of protein in their milk; they have the highest percentage of fat among all other species as well as the lowest percentage of lactose. This is the pattern found that puts seals and dolphins in the same group. We can identify such patterns in the other groups as well.
 
-<li> <b>Os integrais:</b> a principal característica do grupo 4 é que ele engloba as UAs com o maior número de professores com carga-horária de 40 horas. Outra característica do grupo é que todas as UAs possuem idade mediana do cargo abaixo da média.</li>
-
-<li> <b>Meio-expediente:</b> o grupo cinco só consta com 2 UAs. Ele se destaca pois há um pico no número de professores com carga horária de 20 horas, superando em mais de 4 vezes o desvio padrão em um dos casos. </li>
-
-<li> <b>Os pequenos:</b> o grupo seis se caracteriza por possuir o valor de todas as variáveis abaixo da média.</li>
-
-</ul>
-<br>
-<br>
-<br>
+Thank you for reading. I hope it was a pleasurable and useful reading.
